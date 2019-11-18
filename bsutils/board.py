@@ -1,15 +1,15 @@
 import os
-import socket
+import sys
 import serial
+from loguru import logger
 
 
-class Serial(object):
+class BoardSerial(object):
 
     def __init__(self):
 
         self.rate = 9600
         self.time = 1
-        self.error = '[ERROR] _'
         self.OK = '$POK'
         self.SEND_OK = '$PNEUDOK'
 
@@ -17,21 +17,21 @@ class Serial(object):
 
         try:
 
-            os.system('sudo chmod -R 777 ' + port)
+            if sys.platform == 'linux':
+                os.system('sudo chmod -R 777 ' + port)
 
             board = serial.Serial(port, baudrate=self.rate, timeout=self.time)
-
+            logger.success('Successfully connected')
             return board
 
         except serial.SerialException:
-            print(self.error + ' check your parameters and your permission')
-
+            logger.error('Check your parameters and your permission.')
             return None
 
     def send_message(self, connection, message):
 
         if connection is None:
-            print(self.error + ' error in connection')
+            logger.error('Error in connection')
 
             return False
         else:
@@ -39,13 +39,12 @@ class Serial(object):
 
             message = self.create_digit(message.upper())
 
-            print(message)
-
             connection.write(message.upper().encode())
 
             return True
 
-    def create_digit(self, information):
+    @staticmethod
+    def create_digit(information):
 
         information = information.upper()
 
@@ -65,9 +64,9 @@ class Serial(object):
         elif len_hexadecimal == 4:
             validated_information = hexadecimal[2:4]
         else:
-            print(self.error + ' unable to generate validation')
+            logger.error('Unable to generate validation')
 
-        validated_information = information + '*' + validated_information.upper() + '\r\n'
+        validated_information = '{}*{}\r\n'.format(information, validated_information.upper())
 
         return validated_information.upper()
 
@@ -81,23 +80,3 @@ class Serial(object):
             return True
         else:
             return False
-
-
-class Wifi(object):
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def open_connection(port, host):
-
-        board = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        board.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server = (host, port)
-        board.bind(server)
-        board.listen(1)
-
-        return board.accept()
-
-
-

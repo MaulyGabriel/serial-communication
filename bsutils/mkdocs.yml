@@ -6,7 +6,7 @@ site_author: 'Gabriel Mauly'
 theme:
   name: 'material'
   palette:
-    primary: 'green'
+    primary: 'light blue'
     accent: 'orange'
   language: 'pt'
 
@@ -14,3 +14,5 @@ plugins:
     - search
     - pdf-export
 
+markdown_extensions:
+  - codehilite

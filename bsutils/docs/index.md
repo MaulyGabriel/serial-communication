@@ -3,31 +3,33 @@
 
 ## Motivação
 
-O pacote <b>bsutils</b> foi criado para facilitar a implementação de códigos que utilizem a comunicação wifi e a comunicação serial. 
+O pacote <b>bsutils</b> foi criado para facilitar a implementação de códigos que utilizem a comunicação serial. 
 
-O intuito é facilitar e agilizar o desenvolvimento de algoritmos que necessitem de tais comunicações.
+O intuito é facilitar e agilizar o desenvolvimento de algoritmos que necessitem de tal comunicação.
 
 
 ## Desenvolvimento
 
-Este pacote foi desenvolvido sobre a utilização de duas bibliotecas: <b>pyserial</b> e <b>socket</b>.
-Como dependência externa temos apenas a biblioteca <b>pyserial</b> que pode ser instalada com o seguinte comando:
+Este pacote foi desenvolvido sobre a utilização de duas bibliotecas: <b>pyserial</b> e <b>loguru</b>.
+Como dependência externa temos as duas bibliotecas, que podem ser instaladas com o seguinte comando:
 
 	pip install pyserial
+	pip install loguru
 
 Ou 
 
 	conda install pyserial
+	conda install loguru
 
 Para a importação do pacote <b>bsutils</b>, use o seguinte trecho de código:
 
-	from bsutils.board import Wifi   
-	from bsutils.board import Serial 
-
+```python  
+from bsutils.board import Serial 
+```
 
 ## Classes
 
-Nesta seção será descrita a codfiicação realizada para a construção do algoritmo.
+Nesta seção será descrita a codificação realizada para a construção do algoritmo.
 
 ### Serial
 
@@ -38,58 +40,56 @@ Classe responsável pela comunicação serial.
 
 Responsável por iniciar algumas variáveis da classe (construtor):
 
+```python  
+def __init__(self):
 
-	    def __init__(self):
-
-	        self.rate = 9600
-	        self.time = 1
-	        self.error = '[ERROR] _'
-	        self.OK = '$POK'
-	        self.SEND_OK = '$PNEUDOK'
-
-
+    self.rate = 9600
+    self.time = 1
+    self.OK = '$POK'
+    self.SEND_OK = '$PNEUDOK'
+``` 
 
 
 #### open_connection()
 
 Responsável por aplicar permissão na porta serial e abrir a conexão, espera o nome da porta como parâmetro.
 
+```python  
+def open_connection(self, port):
 
-	    def open_connection(self, port):
+    try:
 
-	        try:
+        if sys.platform == 'linux':
+            os.system('sudo chmod -R 777 ' + port)
 
-	            os.system('sudo chmod -R 777 ' + port)
+        board = serial.Serial(port, baudrate=self.rate, timeout=self.time)
+        logger.success('Successfully connected')
+        return board
 
-	            board = serial.Serial(port, baudrate=self.rate, timeout=self.time)
-
-	            return board
-
-	        except serial.SerialException:
-	            print(self.error + ' check your parameters and your permission')
-
-	            return None
-
+    except serial.SerialException:
+        logger.error('Check your parameters and your permission.')
+        return None
+```
 #### send_message()
 
 Responsável por enviar uma mensagem na porta serial, espera a conexão e a mensagem como parâmetro.
 
+```python  
+def send_message(self, connection, message):
 
-	    def send_message(self, connection, message):
+    if connection is None:
+        logger.error('Error in connection')
 
-	        if connection is None:
-	            print(self.error + ' error in connection')
+        return False
+    else:
+        message = str(message)
 
-	            return False
-	        else:
-	            message = str(message)
+        message = self.create_digit(message.upper())
 
-	            message = self.create_digit(message.upper())
+        connection.write(message.upper().encode())
 
-	            connection.write(message.upper().encode())
-
-	            return True
-
+        return True
+```
 
 
 
@@ -97,79 +97,52 @@ Responsável por enviar uma mensagem na porta serial, espera a conexão e a mens
 
 Responsável por criar o checksum da mensagem a ser enviada pela porta serial, espera a mensagem como parâmetro.
 
+```python  
+@staticmethod
+def create_digit(information):
 
-    def create_digit(self, information):
+    information = information.upper()
 
-        information = information.upper()
+    information += ','
 
-        information += ','
+    verify_digit = 0
 
-        verify_digit = 0
+    for digit in str(information):
+        verify_digit ^= ord(digit)
 
-        for digit in str(information):
-            verify_digit ^= ord(digit)
+    validated_information = ''
+    hexadecimal = hex(verify_digit)
+    len_hexadecimal = len(hexadecimal)
 
-        validated_information = ''
-        hexadecimal = hex(verify_digit)
-        len_hexadecimal = len(hexadecimal)
+    if len_hexadecimal == 3:
+        validated_information = '0' + hexadecimal[2]
+    elif len_hexadecimal == 4:
+        validated_information = hexadecimal[2:4]
+    else:
+        logger.error('Unable to generate validation')
 
-        if len_hexadecimal == 3:
-            validated_information = '0' + hexadecimal[2]
-        elif len_hexadecimal == 4:
-            validated_information = hexadecimal[2:4]
-        else:
-            print(self.error + ' unable to generate validation')
+    validated_information = '{}*{}\r\n'.format(information, validated_information.upper())
 
-        validated_information = information + '*' + validated_information.upper() + '\r\n'
-
-        return validated_information.upper()
-
+    return validated_information.upper()
+```
 
 #### verify_digit()
 
 
 Responsável por validar o checksum da mensagem recebida pela porta serial, espera a mensagem como parâmetro.
 
-
-	    def verify_digit(self, information):
-
-        position = information.find('*')
-
-        result = self.create_digit(information[:position - 1])
-
-        if information[position + 1:] == result[position + 1:]:
-            return True
-        else:
-            return False
-
-
-### Wifi
-
-Classe responsável pela comunicação wifi.
-
-
-#### __init__()
-
-Responsável por iniciar algumas variáveis da classe (no momento nenhuma variável foi iniciada):
-
-	def __init__(self):
-		pass
-
-#### open_connection()
-
-Responsável por abrir a conexão, espera a porta e o endereço do servidor como parâmetro.
-
-	@staticmethod
-    def open_connection(port, host):
-
-        board = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        board.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server = (host, port)
-        board.bind(server)
-        board.listen(1)
-
-        return board.accept()
-
+```python  
+def verify_digit(self, information):
+    
+    position = information.find('*')
+    
+    result = self.create_digit(information[:position - 1])
+    
+    if information[position + 1:] == result[position + 1:]:
+        return True
+    else:
+        return False
+``` 
 
 ## Exemplos
 
@@ -178,67 +151,70 @@ Nesta seção será apresentado algumas aplicações rotineiras com o pacote <b>
 
 
 ### Enviando mensagem pela porta serial (pataforma linux):
-	
-	# importacao da biblioteca
-	from bsutils.board import Serial
+
+```python  
+# importacao da biblioteca
+from bsutils.board import Serial
 
 
-	def example():
+def example():
 
-		# objeto da classe
-		s = Serial()
+    # objeto da classe
+    s = Serial()
 
-		# abrindo a conexao
-		connection = s.open_connection(port='/dev/ttyUSB0')
+    # abrindo a conexao
+    connection = s.open_connection(port='/dev/ttyUSB0')
 
-		# enviando uma mensagem
-		s.send_message(connection, 'hello world')
+    # enviando uma mensagem
+    s.send_message(connection, 'hello world')
 
-		# fechando a conexao
-		connection.close()
+    # fechando a conexao
+    connection.close()
 
 
-	if __name__ == '__main__':
+if __name__ == '__main__':
 
-		example()
+    example()
 
+```
 
 ### Realizando a leitura na porta serial
+
+```python     
+# importação da lib
+from bsutils.board import Serial
+
+def example():
     
-    # importação da lib
-    from bsutils.board import Serial
+    # objeto da classe
+    s = Serial()
     
-    def example():
+    # abrindo conexao
+    connection = s.open_connection(port='/dev/ttyUSB0')
+    
+    while True:
         
-        # objeto da classe
-        s = Serial()
+        # verificando a conexao
+        if connection is None:
+            connection = s.open_connection(port='/dev/ttyUSB0')
+
+        try:
+            # se possuir comunicação leia e exiba a mensagem
+            if connection.inWaiting() > 0:
+                message = connection.readline().decode('utf-8', 'replace')
+                print(message)
         
-        # abrindo conexao
-        connection = s.open_connection(port='/dev/ttyUSB0')
-        
-        while True:
+        # caracter inválido
+        except UnicodeError:
+            print('Invalid character')
             
-            # verificando a conexao
-            if connection is None:
-                connection = s.open_connection(port='/dev/ttyUSB0')
-    
-            try:
-                # se possuir comunicação leia e exiba a mensagem
-                if connection.inWaiting() > 0:
-                    message = connection.readline().decode('utf-8', 'replace')
-                    print(message)
+        # cabo desconectado
+        except IOError:
+            print('Cable disconnected')
             
-            # caracter inválido
-            except UnicodeError:
-                print('Invalid character')
-                
-            # cabo desconectado
-            except IOError:
-                print('Cable disconnected')
-                
-                
-    if __name__ == '__main__':
+            
+if __name__ == '__main__':
+    
+    example()
         
-        example()
-        
-        
+```        

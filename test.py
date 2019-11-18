@@ -1,5 +1,5 @@
 from bsutils.board import Wifi
-from bsutils.board import Serial
+from bsutils.board import BoardSerial
 
 
 def wifi_protocol():
@@ -21,7 +21,7 @@ def wifi_protocol():
 
 
 def send_command():
-    s = Serial()
+    s = BoardSerial()
 
     connection = s.open_connection('/dev/ttyUSB0')
 
@@ -41,7 +41,7 @@ def send_command():
 
 
 def serial_protocol():
-    s = Serial()
+    s = BoardSerial()
 
     connection = s.open_connection(port='/dev/ttyUSB0')
 
@@ -51,7 +51,7 @@ def serial_protocol():
 
 
 def example():
-    s = Serial()
+    s = BoardSerial()
 
     connection = s.open_connection(port='/dev/ttyUSB0')
 
