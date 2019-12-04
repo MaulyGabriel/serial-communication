@@ -1,7 +1,7 @@
-import os
-import sys
-import serial
 from loguru import logger
+import serial
+import sys
+import os
 
 
 class BoardSerial(object):
@@ -10,8 +10,6 @@ class BoardSerial(object):
 
         self.rate = 9600
         self.time = 1
-        self.OK = '$POK'
-        self.SEND_OK = '$PNEUDOK'
 
     def open_connection(self, port):
 
@@ -20,9 +18,9 @@ class BoardSerial(object):
             if sys.platform == 'linux':
                 os.system('sudo chmod -R 777 ' + port)
 
-            board = serial.Serial(port, baudrate=self.rate, timeout=self.time)
+            connection = serial.Serial(port, baudrate=self.rate, timeout=self.time)
             logger.success('Successfully connected')
-            return board
+            return connection
 
         except serial.SerialException:
             logger.error('Check your parameters and your permission.')
@@ -37,9 +35,9 @@ class BoardSerial(object):
         else:
             message = str(message)
 
-            message = self.create_digit(message.upper())
+            message = self.create_digit(message)
 
-            connection.write(message.upper().encode())
+            connection.write(message.encode())
 
             return True
 

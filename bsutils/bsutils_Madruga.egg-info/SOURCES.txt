@@ -1,0 +1,6 @@
+README.md
+setup.py
+bsutils_Madruga.egg-info/PKG-INFO
+bsutils_Madruga.egg-info/SOURCES.txt
+bsutils_Madruga.egg-info/dependency_links.txt
+bsutils_Madruga.egg-info/top_level.txt
